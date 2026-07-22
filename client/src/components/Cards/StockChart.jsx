@@ -25,16 +25,44 @@ const data = {
     {
       label: "Purchase (Qt)",
       data: [120, 180, 150, 220, 170, 250],
-      backgroundColor: "#16a34a",
+      backgroundColor: "#15803d",
+      borderRadius: 8,
+      barThickness: 28,
     },
   ],
 };
 
 const options = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
       position: "top",
+      labels: {
+        color: "#334155",
+        font: {
+          size: 13,
+          weight: "600",
+        },
+      },
+    },
+  },
+  scales: {
+    x: {
+      grid: {
+        display: false,
+      },
+      ticks: {
+        color: "#64748b",
+      },
+    },
+    y: {
+      grid: {
+        color: "#e2e8f0",
+      },
+      ticks: {
+        color: "#64748b",
+      },
     },
   },
 };
@@ -42,8 +70,13 @@ const options = {
 function StockChart() {
   return (
     <div className="bg-white rounded-xl shadow p-6 mt-8">
-      <h2 className="text-xl font-bold mb-4">Weekly Purchase</h2>
-      <Bar data={data} options={options} />
+      <h2 className="text-xl font-bold mb-4 text-slate-800">
+        Weekly Purchase
+      </h2>
+
+      <div className="h-56">
+        <Bar data={data} options={options} />
+      </div>
     </div>
   );
 }
