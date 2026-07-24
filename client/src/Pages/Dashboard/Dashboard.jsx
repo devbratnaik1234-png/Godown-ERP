@@ -1,10 +1,7 @@
-function Dashboard() {
+export default function Dashboard() {
   return (
-    <div>
-      <h2>Dashboard</h2>
-      <p>Welcome to Godown ERP Dashboard</p>
+    <div className="p-10 bg-red-500 text-white text-5xl font-bold">
+      THIS IS DASHBOARD
     </div>
   );
 }
-
-export default Dashboard;
