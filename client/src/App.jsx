@@ -8,6 +8,7 @@ import Purchase from "./Pages/Purchases/Purchase";
 import Farmers from "./Pages/Farmers/Farmers";
 import Stock from "./Pages/Stock/Stock";
 import Payments from "./Pages/Payments/Payments";
+import Labours from "./Pages/Labours/Labours";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/farmers" element={<Farmers />} />
             <Route path="/stock" element={<Stock />} />
             <Route path="/payments" element={<Payments />} />
+            <Route path="/labours" element={<Labours />} />
           </Routes>
         </div>
       </div>

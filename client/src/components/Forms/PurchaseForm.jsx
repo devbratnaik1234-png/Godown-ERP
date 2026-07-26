@@ -5,13 +5,11 @@ export default function PurchaseForm({
 }) {
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-
       <h2 className="text-2xl font-bold mb-6">
         Paddy Purchase Entry
       </h2>
 
       <form onSubmit={handleSubmit}>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
           <input
@@ -74,13 +72,14 @@ export default function PurchaseForm({
             className="border rounded-lg p-3"
           />
 
+          {/* Auto Calculated Total Amount */}
           <input
             type="number"
             name="total"
             value={formData.total}
             readOnly
             placeholder="Total Amount"
-            className="border rounded-lg p-3"
+            className="border rounded-lg p-3 bg-gray-100 cursor-not-allowed font-semibold text-green-700"
           />
 
           <input
@@ -117,9 +116,7 @@ export default function PurchaseForm({
         >
           Save Purchase
         </button>
-
       </form>
-
     </div>
   );
 }

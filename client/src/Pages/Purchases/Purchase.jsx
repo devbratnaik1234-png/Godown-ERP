@@ -5,36 +5,69 @@ import PurchaseForm from "../../components/Forms/PurchaseForm";
 import PurchaseTable from "../../components/Tables/PurchaseTable";
 
 export default function Purchase() {
+
+  // Today's Date
+  const today = new Date().toISOString().split("T")[0];
+
+  // Purchase Counter
+  const [purchaseCount, setPurchaseCount] = useState(1);
+
   const [purchases, setPurchases] = useState([]);
+
   const [formData, setFormData] = useState({
-  purchaseId: "",
-  date: "",
-  farmer: "",
-  paddyType: "",
-  quantity: "",
-  rate: "",
-  total: "",
-  truck: "",
-  moisture: "",
-  remarks: "",
-});
-
-const handleChange = (e) => {
-  const { name, value } = e.target;
-
-  setFormData({
-    ...formData,
-    [name]: value,
+    purchaseId: `PUR${String(purchaseCount).padStart(3, "0")}`,
+    date: today,
+    farmer: "",
+    paddyType: "",
+    quantity: "",
+    rate: "",
+    total: "",
+    truck: "",
+    moisture: "",
+    remarks: "",
   });
-};
 
-const handleSubmit = (e) => {
-  e.preventDefault();
+  // Handle Input Change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  setPurchases([...purchases, formData]);
+    const updatedData = {
+      ...formData,
+      [name]: value,
+    };
 
-  console.log(formData);
-};
+    // Auto Calculate Total
+    const quantity = Number(updatedData.quantity) || 0;
+    const rate = Number(updatedData.rate) || 0;
+
+    updatedData.total = quantity * rate;
+
+    setFormData(updatedData);
+  };
+
+  // Save Purchase
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    setPurchases([...purchases, formData]);
+
+    const nextCount = purchaseCount + 1;
+    setPurchaseCount(nextCount);
+
+    // Reset Form
+    setFormData({
+      purchaseId: `PUR${String(nextCount).padStart(3, "0")}`,
+      date: today,
+      farmer: "",
+      paddyType: "",
+      quantity: "",
+      rate: "",
+      total: "",
+      truck: "",
+      moisture: "",
+      remarks: "",
+    });
+  };
 
   return (
     <div className="p-8 bg-gray-100 min-h-screen">
@@ -54,9 +87,9 @@ const handleSubmit = (e) => {
       </div>
 
       <PurchaseForm
-       formData={formData}
-       handleChange={handleChange}
-       handleSubmit={handleSubmit}
+        formData={formData}
+        handleChange={handleChange}
+        handleSubmit={handleSubmit}
       />
 
       <PurchaseTable purchases={purchases} />
