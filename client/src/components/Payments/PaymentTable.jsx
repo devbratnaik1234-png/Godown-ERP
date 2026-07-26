@@ -1,39 +1,4 @@
-function PaymentTable() {
-  const payments = [
-    {
-      id: 1,
-      farmer: "Ramesh Kumar",
-      amount: "₹45,000",
-      method: "UPI",
-      date: "26 Jul 2026",
-      status: "Paid",
-    },
-    {
-      id: 2,
-      farmer: "Suresh Singh",
-      amount: "₹32,000",
-      method: "Bank Transfer",
-      date: "25 Jul 2026",
-      status: "Pending",
-    },
-    {
-      id: 3,
-      farmer: "Amit Yadav",
-      amount: "₹18,500",
-      method: "Cash",
-      date: "24 Jul 2026",
-      status: "Paid",
-    },
-    {
-      id: 4,
-      farmer: "Mahesh Patel",
-      amount: "₹22,300",
-      method: "NEFT",
-      date: "23 Jul 2026",
-      status: "Pending",
-    },
-  ];
-
+function PaymentTable({ payments, onEdit, onDelete }) {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
       <h2 className="text-2xl font-bold mb-5">Payment Table</h2>
@@ -75,12 +40,37 @@ function PaymentTable() {
                 </td>
 
                 <td className="p-3 text-center">
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-lg">
-                    View
-                  </button>
+                  <div className="flex justify-center gap-2">
+
+                    <button
+                      onClick={() => onEdit(item)}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1 rounded-lg"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => onDelete(item.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg"
+                    >
+                      Delete
+                    </button>
+
+                  </div>
                 </td>
               </tr>
             ))}
+
+            {payments.length === 0 && (
+              <tr>
+                <td
+                  colSpan="6"
+                  className="text-center py-6 text-gray-500"
+                >
+                  No Payments Found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
