@@ -9,7 +9,7 @@ import Farmers from "./Pages/Farmers/Farmers";
 import Stock from "./Pages/Stock/Stock";
 import Payments from "./Pages/Payments/Payments";
 import Labours from "./Pages/Labours/Labours";
-
+import Reports from "./Pages/Reports/Reports";
 function App() {
   return (
     <div className="flex bg-gray-100 min-h-screen">
@@ -26,6 +26,7 @@ function App() {
             <Route path="/stock" element={<Stock />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/labours" element={<Labours />} />
+            <Route path="/reports" element={<Reports />} />
           </Routes>
         </div>
       </div>

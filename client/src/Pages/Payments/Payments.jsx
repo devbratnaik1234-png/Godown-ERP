@@ -13,7 +13,7 @@ import { Plus } from "lucide-react";
 const defaultPayments = [
   {
     id: 1,
-    farmer: "Ramesh Kumar",
+    farmer: "SREYA RANA",
     amount: "₹45,000",
     method: "UPI",
     date: "26 Jul 2026",
@@ -21,7 +21,7 @@ const defaultPayments = [
   },
   {
     id: 2,
-    farmer: "Suresh Singh",
+    farmer: "SAMARJIT CHATTERJEE",
     amount: "₹32,000",
     method: "Bank Transfer",
     date: "25 Jul 2026",
@@ -29,7 +29,7 @@ const defaultPayments = [
   },
   {
     id: 3,
-    farmer: "Amit Yadav",
+    farmer: "DEVRAT NAIK",
     amount: "₹18,500",
     method: "Cash",
     date: "24 Jul 2026",

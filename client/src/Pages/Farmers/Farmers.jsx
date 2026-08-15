@@ -6,10 +6,10 @@ import FarmerStats from "../../components/Farmer/FarmerStats";
 
 export default function Farmers() {
   const [farmers, setFarmers] = useState([
-    {
+   {
       id: 1,
-      name: "Ramesh Kumar",
-      village: "Bargarh",
+      name: "Sreya Rana",
+      village: "KHARAGPUR",
       mobile: "9876543210",
       bank: "SBI",
       account: "123456789",
@@ -17,8 +17,8 @@ export default function Farmers() {
     },
     {
       id: 2,
-      name: "Suresh Singh",
-      village: "Sambalpur",
+      name: "Samarjit Chatterjee",
+      village: "KOLKATA",
       mobile: "9123456780",
       bank: "PNB",
       account: "987654321",
