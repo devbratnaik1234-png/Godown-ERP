@@ -1,31 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FarmerForm from "../../components/Farmer/FarmerForm";
 import FarmerSearch from "../../components/Farmer/FarmerSearch";
 import FarmerTable from "../../components/Farmer/FarmerTable";
 import FarmerStats from "../../components/Farmer/FarmerStats";
+import { api } from "../../api";
 
 export default function Farmers() {
-  const [farmers, setFarmers] = useState([
-   {
-      id: 1,
-      name: "Sreya Rana",
-      village: "KHARAGPUR",
-      mobile: "9876543210",
-      bank: "SBI",
-      account: "123456789",
-      status: "Paid",
-    },
-    {
-      id: 2,
-      name: "Samarjit Chatterjee",
-      village: "KOLKATA",
-      mobile: "9123456780",
-      bank: "PNB",
-      account: "987654321",
-      status: "Pending",
-    },
-  ]);
-
+  const [farmers, setFarmers] = useState([]);
   const [newFarmer, setNewFarmer] = useState({
     name: "",
     village: "",
@@ -33,36 +14,66 @@ export default function Farmers() {
     bank: "",
     account: "",
   });
-
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const addFarmer = () => {
+  const normalizeFarmer = (farmer) => ({
+    ...farmer,
+    id: farmer._id,
+  });
+
+  const loadFarmers = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await api.list("farmers");
+      setFarmers(data.map(normalizeFarmer));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFarmers();
+  }, []);
+
+  const addFarmer = async () => {
     if (newFarmer.name.trim() === "") {
       alert("Please enter farmer name");
       return;
     }
 
-    setFarmers([
-      ...farmers,
-      {
-        id: Date.now(),
+    try {
+      setError("");
+      const created = await api.create("farmers", {
         ...newFarmer,
         status: "Pending",
-      },
-    ]);
-
-    setNewFarmer({
-      name: "",
-      village: "",
-      mobile: "",
-      bank: "",
-      account: "",
-    });
+      });
+      setFarmers((prev) => [normalizeFarmer(created), ...prev]);
+      setNewFarmer({
+        name: "",
+        village: "",
+        mobile: "",
+        bank: "",
+        account: "",
+      });
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-  const deleteFarmer = (id) => {
-    if (window.confirm("Delete this farmer?")) {
-      setFarmers(farmers.filter((farmer) => farmer.id !== id));
+  const deleteFarmer = async (id) => {
+    if (!window.confirm("Delete this farmer?")) return;
+
+    try {
+      setError("");
+      await api.remove("farmers", id);
+      setFarmers((prev) => prev.filter((farmer) => farmer.id !== id));
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -70,12 +81,14 @@ export default function Farmers() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Farmer Management</h1>
-
-        <FarmerSearch
-          search={search}
-          setSearch={setSearch}
-        />
+        <FarmerSearch search={search} setSearch={setSearch} />
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-50 p-3 text-red-700">
+          {error}
+        </div>
+      )}
 
       <FarmerForm
         newFarmer={newFarmer}
@@ -83,15 +96,19 @@ export default function Farmers() {
         addFarmer={addFarmer}
       />
 
-      <FarmerTable
-        farmers={farmers}
-        search={search}
-        deleteFarmer={deleteFarmer}
-      />
+      {loading ? (
+        <div className="bg-white rounded-xl shadow p-8 text-center text-gray-500">
+          Loading farmers...
+        </div>
+      ) : (
+        <FarmerTable
+          farmers={farmers}
+          search={search}
+          deleteFarmer={deleteFarmer}
+        />
+      )}
 
-      <FarmerStats
-        farmers={farmers}
-      />
+      <FarmerStats farmers={farmers} />
     </div>
   );
 }

@@ -1,23 +1,25 @@
-export default function FinancialSummary() {
-  const data = [
+export default function FinancialSummary({ data = {} }) {
+  const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
+  const items = [
     {
-      title: "Total Purchase",
-      value: "₹12.5 Lakh",
+      title: "Total Purchase Value",
+      value: formatCurrency(data.totalPurchaseValue),
       color: "text-blue-600",
     },
     {
-      title: "Total Sales",
-      value: "₹15.8 Lakh",
+      title: "Paid Amount",
+      value: formatCurrency(data.totalPaid),
       color: "text-green-600",
     },
     {
-      title: "Total Expenses",
-      value: "₹2.1 Lakh",
+      title: "Pending Payment",
+      value: formatCurrency(data.pendingPayments),
       color: "text-red-600",
     },
     {
-      title: "Net Profit",
-      value: "₹3.3 Lakh",
+      title: "Current Stock Value",
+      value: formatCurrency(data.stockValue),
       color: "text-purple-600",
     },
   ];
@@ -28,13 +30,13 @@ export default function FinancialSummary() {
         <h2 className="text-2xl font-bold text-slate-800">
           Financial Summary
         </h2>
-        <span className="text-sm text-slate-500">This Month</span>
+        <span className="text-sm text-slate-500">Live Database</span>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {data.map((item, index) => (
+        {items.map((item) => (
           <div
-            key={index}
+            key={item.title}
             className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition"
           >
             <p className="text-sm text-slate-500">{item.title}</p>

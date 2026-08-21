@@ -19,19 +19,6 @@ ChartJS.register(
   Legend
 );
 
-const data = {
-  labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-  datasets: [
-    {
-      label: "Purchase (Qt)",
-      data: [120, 180, 150, 220, 170, 250],
-      backgroundColor: "#15803d",
-      borderRadius: 8,
-      barThickness: 28,
-    },
-  ],
-};
-
 const options = {
   responsive: true,
   maintainAspectRatio: false,
@@ -57,6 +44,7 @@ const options = {
       },
     },
     y: {
+      beginAtZero: true,
       grid: {
         color: "#e2e8f0",
       },
@@ -67,7 +55,20 @@ const options = {
   },
 };
 
-function StockChart() {
+function StockChart({ weeklyPurchases = [] }) {
+  const data = {
+    labels: weeklyPurchases.map((item) => item.label),
+    datasets: [
+      {
+        label: "Purchase (Qt)",
+        data: weeklyPurchases.map((item) => Number(item.quantity || 0)),
+        backgroundColor: "#15803d",
+        borderRadius: 8,
+        barThickness: 28,
+      },
+    ],
+  };
+
   return (
     <div className="bg-white rounded-xl shadow p-6 mt-8">
       <h2 className="text-xl font-bold mb-4 text-slate-800">

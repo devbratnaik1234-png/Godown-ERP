@@ -1,6 +1,6 @@
-import { Bell, Search, UserCircle, Menu } from "lucide-react";
+import { Bell, Search, UserCircle, Menu, LogOut } from "lucide-react";
 
-export default function Navbar({ toggleSidebar }) {
+export default function Navbar({ toggleSidebar, user, onLogout }) {
   const today = new Date().toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -48,10 +48,19 @@ export default function Navbar({ toggleSidebar }) {
         <div className="flex items-center gap-2">
           <UserCircle className="text-gray-700" size={36} />
           <div className="hidden sm:block">
-            <p className="font-semibold text-gray-800">Admin</p>
-            <p className="text-xs text-gray-500">Godown Owner</p>
+            <p className="font-semibold text-gray-800">{user?.name || "Admin"}</p>
+            <p className="text-xs text-gray-500">{user?.email || "Godown Owner"}</p>
           </div>
         </div>
+
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition"
+          title="Logout"
+        >
+          <LogOut size={19} />
+          <span className="hidden lg:inline text-sm font-medium">Logout</span>
+        </button>
       </div>
     </div>
   );
