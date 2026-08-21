@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Navbar from "../../components/Navbar/Navbar";
 import PaymentCards from "../../components/Payments/PaymentCards";
 import PaymentTable from "../../components/Payments/PaymentTable";
 import PaymentSummary from "../../components/Payments/PaymentSummary";
@@ -81,8 +80,6 @@ function Payments() {
 
   return (
     <div className="flex-1 bg-gray-100 min-h-screen">
-      <Navbar />
-
       <div className="p-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
@@ -112,7 +109,7 @@ function Payments() {
           </div>
         )}
 
-        <PaymentCards />
+        <PaymentCards payments={payments} />
 
         <div className="mt-8">
           {loading ? (
