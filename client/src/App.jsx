@@ -41,6 +41,12 @@ function App() {
     restoreSession();
   }, []);
 
+  useEffect(() => {
+    const handleUnauthorized = () => setUser(null);
+    window.addEventListener("godown-erp-unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("godown-erp-unauthorized", handleUnauthorized);
+  }, []);
+
   const handleLogout = () => {
     api.logout();
     setUser(null);
