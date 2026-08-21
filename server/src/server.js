@@ -2,11 +2,22 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import dns from "node:dns";
 import crudRouter from "./crudRouter.js";
 import authRouter, { ensureAdminUser, requireAuth } from "./auth.js";
 import { Farmer, Labour, Purchase, Payment, Stock, Truck } from "./models.js";
 
 dotenv.config();
+
+const configuredDnsServers = (process.env.DNS_SERVERS || "")
+  .split(",")
+  .map((server) => server.trim())
+  .filter(Boolean);
+
+if (configuredDnsServers.length > 0) {
+  dns.setServers(configuredDnsServers);
+  console.log(`Using configured DNS servers: ${configuredDnsServers.join(", ")}`);
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
