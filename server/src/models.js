@@ -72,9 +72,17 @@ const truckSchema = new mongoose.Schema({
 
 truckSchema.index({ truckNo: 1 }, { unique: true });
 
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true, default: "Admin" },
+  email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+  passwordHash: { type: String, required: true },
+  role: { type: String, enum: ["admin"], default: "admin" }
+}, options);
+
 export const Farmer = mongoose.model("Farmer", farmerSchema);
 export const Labour = mongoose.model("Labour", labourSchema);
 export const Purchase = mongoose.model("Purchase", purchaseSchema);
 export const Payment = mongoose.model("Payment", paymentSchema);
 export const Stock = mongoose.model("Stock", stockSchema);
 export const Truck = mongoose.model("Truck", truckSchema);
+export const User = mongoose.model("User", userSchema);
