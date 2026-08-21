@@ -35,7 +35,7 @@ app.get("/api/dashboard", async (req, res, next) => {
     const [farmers, labours, purchases, payments, stocks, trucks] = await Promise.all([
       Farmer.countDocuments(),
       Labour.countDocuments(),
-      Purchase.find(),
+      Purchase.find().sort({ date: -1, createdAt: -1 }),
       Payment.find(),
       Stock.find(),
       Truck.countDocuments()
@@ -43,10 +43,59 @@ app.get("/api/dashboard", async (req, res, next) => {
 
     const totalPurchasedQuantity = purchases.reduce((sum, item) => sum + (item.quantity || 0), 0);
     const totalPurchaseValue = purchases.reduce((sum, item) => sum + (item.total || 0), 0);
-    const totalPaid = payments.filter((item) => item.status === "Paid").reduce((sum, item) => sum + (item.amount || 0), 0);
-    const pendingPayments = payments.filter((item) => item.status === "Pending").reduce((sum, item) => sum + (item.amount || 0), 0);
+    const totalPaid = payments
+      .filter((item) => item.status === "Paid")
+      .reduce((sum, item) => sum + (item.amount || 0), 0);
+    const pendingPayments = payments
+      .filter((item) => item.status === "Pending")
+      .reduce((sum, item) => sum + (item.amount || 0), 0);
     const stockQuantity = stocks.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    const stockValue = stocks.reduce((sum, item) => sum + (item.quantity || 0) * (item.rate || 0), 0);
+    const stockValue = stocks.reduce(
+      (sum, item) => sum + (item.quantity || 0) * (item.rate || 0),
+      0
+    );
+
+    const stockMap = stocks.reduce((acc, item) => {
+      const key = item.rice || "Unknown";
+      acc[key] = (acc[key] || 0) + (item.quantity || 0);
+      return acc;
+    }, {});
+
+    const stockBreakdown = Object.entries(stockMap)
+      .map(([name, quantity]) => ({ name, quantity }))
+      .sort((a, b) => b.quantity - a.quantity);
+
+    const today = new Date();
+    const weeklyPurchases = Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(today);
+      day.setHours(0, 0, 0, 0);
+      day.setDate(today.getDate() - (6 - index));
+      const nextDay = new Date(day);
+      nextDay.setDate(day.getDate() + 1);
+
+      const quantity = purchases
+        .filter((item) => {
+          const date = new Date(item.date);
+          return date >= day && date < nextDay;
+        })
+        .reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+      return {
+        label: day.toLocaleDateString("en-IN", { weekday: "short" }),
+        date: day.toISOString().split("T")[0],
+        quantity
+      };
+    });
+
+    const recentPurchases = purchases.slice(0, 5).map((item) => ({
+      id: item._id,
+      purchaseId: item.purchaseId,
+      farmer: item.farmer,
+      quantity: item.quantity,
+      rate: item.rate,
+      total: item.total,
+      date: item.date
+    }));
 
     res.json({
       farmers,
@@ -59,7 +108,10 @@ app.get("/api/dashboard", async (req, res, next) => {
       pendingPayments,
       stocks: stocks.length,
       stockQuantity,
-      stockValue
+      stockValue,
+      recentPurchases,
+      stockBreakdown,
+      weeklyPurchases
     });
   } catch (error) {
     next(error);
