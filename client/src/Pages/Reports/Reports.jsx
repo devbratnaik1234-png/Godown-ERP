@@ -1,8 +1,5 @@
-import { useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -12,12 +9,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-
 import {
   ShoppingCart,
   BadgeIndianRupee,
   Wallet,
-  TrendingUp,
+  Scale,
   FileText,
   Download,
   Printer,
@@ -25,232 +21,189 @@ import {
   CalendarDays,
   BarChart3,
 } from "lucide-react";
+import { api } from "../../api";
 
 function Reports() {
-  // =====================================================
-  // SAMPLE REPORT DATA
-  // Later this will come from backend/database
-  // =====================================================
-
-  const reportData = [
-    {
-      date: "2026-08-01",
-      displayDate: "01 Aug 2026",
-      purchase: 120000,
-      sales: 145000,
-      labour: 8000,
-      transport: 5000,
-      profit: 12000,
-    },
-
-    {
-      date: "2026-08-05",
-      displayDate: "05 Aug 2026",
-      purchase: 175000,
-      sales: 210000,
-      labour: 10000,
-      transport: 6000,
-      profit: 19000,
-    },
-
-    {
-      date: "2026-08-10",
-      displayDate: "10 Aug 2026",
-      purchase: 210000,
-      sales: 255000,
-      labour: 12000,
-      transport: 7000,
-      profit: 26000,
-    },
-
-    {
-      date: "2026-08-15",
-      displayDate: "15 Aug 2026",
-      purchase: 160000,
-      sales: 195000,
-      labour: 9000,
-      transport: 8000,
-      profit: 18000,
-    },
-
-    {
-      date: "2026-08-20",
-      displayDate: "20 Aug 2026",
-      purchase: 230000,
-      sales: 278000,
-      labour: 10000,
-      transport: 7000,
-      profit: 31000,
-    },
-
-    {
-      date: "2026-08-25",
-      displayDate: "25 Aug 2026",
-      purchase: 200000,
-      sales: 245000,
-      labour: 9000,
-      transport: 8000,
-      profit: 28000,
-    },
-  ];
-
-  // =====================================================
-  // STATES
-  // =====================================================
-
+  const [purchases, setPurchases] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [reportType, setReportType] = useState("Overall Report");
-
   const [fromDate, setFromDate] = useState("");
-
   const [toDate, setToDate] = useState("");
+  const [appliedFromDate, setAppliedFromDate] = useState("");
+  const [appliedToDate, setAppliedToDate] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [filteredData, setFilteredData] = useState(reportData);
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        setError("");
+        const [purchaseData, paymentData] = await Promise.all([
+          api.list("purchases"),
+          api.list("payments"),
+        ]);
+        setPurchases(purchaseData);
+        setPayments(paymentData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // =====================================================
-  // MONEY FORMATTER
-  // =====================================================
+    loadReports();
+  }, []);
 
-  const formatMoney = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
+  const formatMoney = (amount) =>
+    new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(Number(amount || 0));
+
+  const formatDate = (value) => {
+    if (!value) return "-";
+    return new Date(value).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
-  // =====================================================
-  // GENERATE REPORT
-  // =====================================================
+  const toDateKey = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toISOString().split("T")[0];
+  };
+
+  const allRows = useMemo(() => {
+    const purchaseRows = purchases.map((item) => ({
+      id: item._id,
+      date: item.date,
+      dateKey: toDateKey(item.date),
+      category: "Purchase",
+      reference: item.purchaseId || "-",
+      party: item.farmer,
+      quantity: Number(item.quantity || 0),
+      amount: Number(item.total || 0),
+      status: "Recorded",
+    }));
+
+    const paymentRows = payments.map((item) => ({
+      id: item._id,
+      date: item.date,
+      dateKey: toDateKey(item.date),
+      category: "Payment",
+      reference: item.method || "-",
+      party: item.farmer,
+      quantity: 0,
+      amount: Number(item.amount || 0),
+      status: item.status || "-",
+    }));
+
+    return [...purchaseRows, ...paymentRows].sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+  }, [purchases, payments]);
+
+  const filteredData = useMemo(() => {
+    return allRows.filter((item) => {
+      if (reportType === "Purchase Report" && item.category !== "Purchase") return false;
+      if (reportType === "Payment Report" && item.category !== "Payment") return false;
+      if (appliedFromDate && item.dateKey < appliedFromDate) return false;
+      if (appliedToDate && item.dateKey > appliedToDate) return false;
+      return true;
+    });
+  }, [allRows, reportType, appliedFromDate, appliedToDate]);
 
   const generateReport = () => {
     if (fromDate && toDate && fromDate > toDate) {
       alert("From Date cannot be greater than To Date.");
       return;
     }
-
-    let data = [...reportData];
-
-    if (fromDate) {
-      data = data.filter((item) => item.date >= fromDate);
-    }
-
-    if (toDate) {
-      data = data.filter((item) => item.date <= toDate);
-    }
-
-    setFilteredData(data);
+    setAppliedFromDate(fromDate);
+    setAppliedToDate(toDate);
   };
-
-  // =====================================================
-  // RESET FILTER
-  // =====================================================
 
   const resetReport = () => {
     setReportType("Overall Report");
-
     setFromDate("");
-
     setToDate("");
-
-    setFilteredData(reportData);
+    setAppliedFromDate("");
+    setAppliedToDate("");
   };
 
-  // =====================================================
-  // KPI CALCULATIONS
-  // =====================================================
+  const filteredPurchaseRows = filteredData.filter((item) => item.category === "Purchase");
+  const filteredPaymentRows = filteredData.filter((item) => item.category === "Payment");
 
-  const totalPurchase = filteredData.reduce(
-    (total, item) => total + item.purchase,
-    0
-  );
-
-  const totalSales = filteredData.reduce(
-    (total, item) => total + item.sales,
-    0
-  );
-
-  const totalLabour = filteredData.reduce(
-    (total, item) => total + item.labour,
-    0
-  );
-
-  const totalTransport = filteredData.reduce(
-    (total, item) => total + item.transport,
-    0
-  );
-
-  const totalExpenses = totalLabour + totalTransport;
-
-  const totalProfit = filteredData.reduce(
-    (total, item) => total + item.profit,
-    0
-  );
-
-  const profitMargin =
-    totalSales > 0
-      ? ((totalProfit / totalSales) * 100).toFixed(1)
-      : 0;
-
-  // =====================================================
-  // KPI CARDS
-  // =====================================================
+  const totalPurchase = filteredPurchaseRows.reduce((sum, item) => sum + item.amount, 0);
+  const totalPayments = filteredPaymentRows
+    .filter((item) => item.status === "Paid")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const pendingPayments = filteredPaymentRows
+    .filter((item) => item.status === "Pending")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const totalQuantity = filteredPurchaseRows.reduce((sum, item) => sum + item.quantity, 0);
 
   const reportCards = [
     {
-      title: "Total Purchase",
+      title: "Purchase Value",
       value: formatMoney(totalPurchase),
-      subtitle: "Paddy purchase value",
+      subtitle: "Recorded paddy purchases",
       icon: ShoppingCart,
       iconStyle: "bg-blue-100 text-blue-600",
     },
-
     {
-      title: "Total Sales",
-      value: formatMoney(totalSales),
-      subtitle: "Total sales revenue",
+      title: "Paid Amount",
+      value: formatMoney(totalPayments),
+      subtitle: "Completed farmer payments",
       icon: BadgeIndianRupee,
-      iconStyle: "bg-purple-100 text-purple-600",
+      iconStyle: "bg-green-100 text-green-600",
     },
-
     {
-      title: "Total Expenses",
-      value: formatMoney(totalExpenses),
-      subtitle: "Labour + Transport",
+      title: "Pending Payment",
+      value: formatMoney(pendingPayments),
+      subtitle: "Amount still pending",
       icon: Wallet,
       iconStyle: "bg-orange-100 text-orange-600",
     },
-
     {
-      title: "Net Profit",
-      value: formatMoney(totalProfit),
-      subtitle: `${profitMargin}% profit margin`,
-      icon: TrendingUp,
-      iconStyle: "bg-green-100 text-green-600",
+      title: "Purchased Quantity",
+      value: `${totalQuantity.toLocaleString("en-IN")} Qt`,
+      subtitle: "Total paddy quantity",
+      icon: Scale,
+      iconStyle: "bg-purple-100 text-purple-600",
     },
   ];
 
-  // =====================================================
-  // LINE CHART DATA
-  // =====================================================
+  const chartData = useMemo(() => {
+    const grouped = {};
 
-  const profitData = filteredData.map((item) => ({
-    date: item.displayDate.substring(0, 6),
-    profit: item.profit,
-  }));
+    filteredData.forEach((item) => {
+      if (!item.dateKey) return;
+      if (!grouped[item.dateKey]) {
+        grouped[item.dateKey] = {
+          date: item.dateKey,
+          purchase: 0,
+          payment: 0,
+        };
+      }
 
-  // =====================================================
-  // PURCHASE VS SALES CHART DATA
-  // =====================================================
+      if (item.category === "Purchase") grouped[item.dateKey].purchase += item.amount;
+      if (item.category === "Payment" && item.status === "Paid") grouped[item.dateKey].payment += item.amount;
+    });
 
-  const comparisonData = filteredData.map((item) => ({
-    date: item.displayDate.substring(0, 6),
-    purchase: item.purchase,
-    sales: item.sales,
-  }));
-
-  // =====================================================
-  // EXPORT CSV
-  // =====================================================
+    return Object.values(grouped)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((item) => ({
+        ...item,
+        label: new Date(`${item.date}T00:00:00`).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+        }),
+      }));
+  }, [filteredData]);
 
   const exportCSV = () => {
     if (filteredData.length === 0) {
@@ -258,55 +211,34 @@ function Reports() {
       return;
     }
 
-    const headers = [
-      "Date",
-      "Purchase",
-      "Sales",
-      "Labour Cost",
-      "Transport Cost",
-      "Profit",
-    ];
-
+    const headers = ["Date", "Category", "Reference", "Farmer", "Quantity", "Amount", "Status"];
     const rows = filteredData.map((item) => [
-      item.displayDate,
-      item.purchase,
-      item.sales,
-      item.labour,
-      item.transport,
-      item.profit,
+      formatDate(item.date),
+      item.category,
+      item.reference,
+      item.party,
+      item.quantity,
+      item.amount,
+      item.status,
     ]);
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
+    const escapeCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map(escapeCell).join(","))
+      .join("\n");
 
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
-
     link.href = url;
-
-    link.download = "PaddySync-Report.csv";
-
+    link.download = "Godown-ERP-Report.csv";
     document.body.appendChild(link);
-
     link.click();
-
     document.body.removeChild(link);
-
     URL.revokeObjectURL(url);
   };
 
-  // =====================================================
-  // PRINT / SAVE PDF
-  // =====================================================
-
-  const downloadPDF = () => {
+  const printReport = () => {
     if (filteredData.length === 0) {
       alert("No report data available.");
       return;
@@ -316,19 +248,19 @@ function Reports() {
       .map(
         (item) => `
           <tr>
-            <td>${item.displayDate}</td>
-            <td>${formatMoney(item.purchase)}</td>
-            <td>${formatMoney(item.sales)}</td>
-            <td>${formatMoney(item.labour)}</td>
-            <td>${formatMoney(item.transport)}</td>
-            <td>${formatMoney(item.profit)}</td>
+            <td>${formatDate(item.date)}</td>
+            <td>${item.category}</td>
+            <td>${item.reference}</td>
+            <td>${item.party}</td>
+            <td>${item.quantity ? `${item.quantity} Qt` : "-"}</td>
+            <td>${formatMoney(item.amount)}</td>
+            <td>${item.status}</td>
           </tr>
         `
       )
       .join("");
 
     const printWindow = window.open("", "_blank");
-
     if (!printWindow) {
       alert("Please allow popups to print the report.");
       return;
@@ -336,761 +268,236 @@ function Reports() {
 
     printWindow.document.write(`
       <!DOCTYPE html>
-
       <html>
-
         <head>
-
-          <title>PaddySync Report</title>
-
+          <title>Godown ERP Report</title>
           <style>
-
-            * {
-              box-sizing: border-box;
-            }
-
-            body {
-              font-family: Arial, sans-serif;
-              padding: 30px;
-              color: #1e293b;
-            }
-
-            h1 {
-              margin-bottom: 4px;
-              color: #166534;
-            }
-
-            .subtitle {
-              color: #64748b;
-              margin-bottom: 25px;
-            }
-
-            .summary {
-              display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 12px;
-              margin-bottom: 30px;
-            }
-
-            .card {
-              border: 1px solid #e2e8f0;
-              border-radius: 8px;
-              padding: 15px;
-            }
-
-            .card-title {
-              font-size: 12px;
-              color: #64748b;
-            }
-
-            .card-value {
-              font-size: 19px;
-              font-weight: bold;
-              margin-top: 7px;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-
-            th {
-              background: #f1f5f9;
-            }
-
-            th,
-            td {
-              border: 1px solid #e2e8f0;
-              padding: 10px;
-              text-align: left;
-              font-size: 13px;
-            }
-
-            .footer {
-              margin-top: 30px;
-              border-top: 1px solid #e2e8f0;
-              padding-top: 15px;
-              font-size: 12px;
-              color: #64748b;
-            }
-
-            @media print {
-
-              body {
-                padding: 10px;
-              }
-
-            }
-
+            body { font-family: Arial, sans-serif; padding: 28px; color: #1e293b; }
+            h1 { color: #166534; margin-bottom: 4px; }
+            p { color: #64748b; }
+            .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 24px 0; }
+            .card { border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; }
+            .label { color: #64748b; font-size: 12px; }
+            .value { font-weight: bold; margin-top: 6px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 12px; }
+            th { background: #f1f5f9; }
           </style>
-
         </head>
-
         <body>
-
-          <h1>PaddySync</h1>
-
-          <div class="subtitle">
-
-            Paddy Management System • ${reportType}
-
-          </div>
-
+          <h1>Godown ERP</h1>
+          <p>${reportType}</p>
           <div class="summary">
-
-            <div class="card">
-
-              <div class="card-title">
-                Total Purchase
-              </div>
-
-              <div class="card-value">
-                ${formatMoney(totalPurchase)}
-              </div>
-
-            </div>
-
-            <div class="card">
-
-              <div class="card-title">
-                Total Sales
-              </div>
-
-              <div class="card-value">
-                ${formatMoney(totalSales)}
-              </div>
-
-            </div>
-
-            <div class="card">
-
-              <div class="card-title">
-                Total Expenses
-              </div>
-
-              <div class="card-value">
-                ${formatMoney(totalExpenses)}
-              </div>
-
-            </div>
-
-            <div class="card">
-
-              <div class="card-title">
-                Net Profit
-              </div>
-
-              <div class="card-value">
-                ${formatMoney(totalProfit)}
-              </div>
-
-            </div>
-
+            <div class="card"><div class="label">Purchase Value</div><div class="value">${formatMoney(totalPurchase)}</div></div>
+            <div class="card"><div class="label">Paid Amount</div><div class="value">${formatMoney(totalPayments)}</div></div>
+            <div class="card"><div class="label">Pending Payment</div><div class="value">${formatMoney(pendingPayments)}</div></div>
+            <div class="card"><div class="label">Purchased Quantity</div><div class="value">${totalQuantity} Qt</div></div>
           </div>
-
-          <h2>Transaction Summary</h2>
-
           <table>
-
-            <thead>
-
-              <tr>
-
-                <th>Date</th>
-
-                <th>Purchase</th>
-
-                <th>Sales</th>
-
-                <th>Labour</th>
-
-                <th>Transport</th>
-
-                <th>Profit</th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              ${rows}
-
-            </tbody>
-
+            <thead><tr><th>Date</th><th>Category</th><th>Reference</th><th>Farmer</th><th>Quantity</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody>${rows}</tbody>
           </table>
-
-          <div class="footer">
-
-            Generated from PaddySync ERP
-
-          </div>
-
-          <script>
-
-            window.onload = () => {
-              window.print();
-            };
-
-          </script>
-
+          <script>window.onload = () => window.print();</script>
         </body>
-
       </html>
     `);
-
     printWindow.document.close();
   };
 
-  // =====================================================
-  // UI
-  // =====================================================
+  if (loading) {
+    return <div className="bg-white rounded-xl p-6 shadow">Loading reports...</div>;
+  }
 
   return (
     <div className="pb-10">
-
-      {/* ================================================= */}
-      {/* PAGE HEADING */}
-      {/* ================================================= */}
-
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-
         <div>
-
-          <h1 className="text-3xl font-bold text-slate-800">
-            Reports & Analytics
-          </h1>
-
+          <h1 className="text-3xl font-bold text-slate-800">Reports & Analytics</h1>
           <p className="text-slate-500 mt-1">
-            Monitor your godown's financial performance and business activity.
+            Live purchase and payment analytics from the Godown ERP database.
           </p>
-
         </div>
 
         <div className="flex items-center gap-2 text-sm text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-lg">
-
           <CalendarDays size={18} />
-
-          August 2026
-
+          Live Database Report
         </div>
-
       </div>
 
-      {/* ================================================= */}
-      {/* KPI CARDS */}
-      {/* ================================================= */}
+      {error && (
+        <div className="mt-5 rounded-lg bg-red-50 p-3 text-red-700">{error}</div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-8">
-
-        {reportCards.map((card, index) => {
-
+        {reportCards.map((card) => {
           const Icon = card.icon;
-
           return (
-
             <div
-              key={index}
+              key={card.title}
               className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition"
             >
-
               <div className="flex items-start justify-between">
-
                 <div>
-
-                  <p className="text-sm font-medium text-slate-500">
-                    {card.title}
-                  </p>
-
-                  <h2 className="text-2xl font-bold text-slate-800 mt-3">
-                    {card.value}
-                  </h2>
-
+                  <p className="text-sm font-medium text-slate-500">{card.title}</p>
+                  <h2 className="text-2xl font-bold text-slate-800 mt-3">{card.value}</h2>
                 </div>
-
-                <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center ${card.iconStyle}`}
-                >
-
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${card.iconStyle}`}>
                   <Icon size={22} />
-
                 </div>
-
               </div>
-
-              <p className="text-xs text-slate-400 mt-4">
-                {card.subtitle}
-              </p>
-
+              <p className="text-xs text-slate-400 mt-4">{card.subtitle}</p>
             </div>
-
           );
-
         })}
-
       </div>
 
-      {/* ================================================= */}
-      {/* FILTER */}
-      {/* ================================================= */}
-
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mt-8">
-
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
-
           <div>
-
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-
-              <FileText size={21} />
-
-              Generate Report
-
+              <FileText size={21} /> Generate Report
             </h2>
-
-            <p className="text-sm text-slate-400 mt-1">
-              Filter your financial report by date and category.
-            </p>
-
+            <p className="text-sm text-slate-400 mt-1">Filter live records by type and date.</p>
           </div>
-
           <button
             onClick={resetReport}
             className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition"
           >
-
-            <RotateCcw size={16} />
-
-            Reset Filters
-
+            <RotateCcw size={16} /> Reset Filters
           </button>
-
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-
           <div>
-
-            <label className="block text-sm font-medium text-slate-600 mb-2">
-              Report Type
-            </label>
-
+            <label className="block text-sm font-medium text-slate-600 mb-2">Report Type</label>
             <select
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
               className="w-full border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-green-500"
             >
-
               <option>Overall Report</option>
-
               <option>Purchase Report</option>
-
-              <option>Sales Report</option>
-
-              <option>Expense Report</option>
-
-              <option>Profit Report</option>
-
+              <option>Payment Report</option>
             </select>
-
           </div>
 
           <div>
-
-            <label className="block text-sm font-medium text-slate-600 mb-2">
-              From Date
-            </label>
-
+            <label className="block text-sm font-medium text-slate-600 mb-2">From Date</label>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="w-full border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-green-500"
             />
-
           </div>
 
           <div>
-
-            <label className="block text-sm font-medium text-slate-600 mb-2">
-              To Date
-            </label>
-
+            <label className="block text-sm font-medium text-slate-600 mb-2">To Date</label>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               className="w-full border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-green-500"
             />
-
           </div>
 
           <div className="flex items-end">
-
             <button
               onClick={generateReport}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition"
             >
-
               Generate Report
-
             </button>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* ================================================= */}
-      {/* TABLE */}
-      {/* ================================================= */}
-
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mt-8">
-
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-
           <div>
-
-            <h2 className="text-xl font-semibold text-slate-800">
-              {reportType}
-            </h2>
-
-            <p className="text-sm text-slate-400 mt-1">
-              {filteredData.length} transaction records
-            </p>
-
+            <h2 className="text-xl font-semibold text-slate-800">{reportType}</h2>
+            <p className="text-sm text-slate-400 mt-1">{filteredData.length} live records</p>
           </div>
-
           <div className="flex flex-wrap gap-3">
-
             <button
               onClick={exportCSV}
               className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 transition"
             >
-
-              <Download size={17} />
-
-              Export CSV
-
+              <Download size={17} /> Export CSV
             </button>
-
             <button
-              onClick={downloadPDF}
+              onClick={printReport}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition"
             >
-
-              <Printer size={17} />
-
-              Print / PDF
-
+              <Printer size={17} /> Print / PDF
             </button>
-
           </div>
-
         </div>
 
         <div className="overflow-x-auto">
-
           <table className="w-full text-left">
-
             <thead>
-
               <tr className="border-b border-slate-200 text-sm text-slate-500">
-
-                <th className="py-3 px-3">
-                  Date
-                </th>
-
-                <th className="py-3 px-3">
-                  Purchase
-                </th>
-
-                <th className="py-3 px-3">
-                  Sales
-                </th>
-
-                <th className="py-3 px-3">
-                  Labour
-                </th>
-
-                <th className="py-3 px-3">
-                  Transport
-                </th>
-
-                <th className="py-3 px-3">
-                  Profit
-                </th>
-
+                <th className="py-3 px-3">Date</th>
+                <th className="py-3 px-3">Category</th>
+                <th className="py-3 px-3">Reference</th>
+                <th className="py-3 px-3">Farmer</th>
+                <th className="py-3 px-3">Quantity</th>
+                <th className="py-3 px-3">Amount</th>
+                <th className="py-3 px-3">Status</th>
               </tr>
-
             </thead>
-
             <tbody>
-
               {filteredData.length > 0 ? (
-
-                filteredData.map((item, index) => (
-
-                  <tr
-                    key={index}
-                    className="border-b border-slate-100 hover:bg-slate-50 transition"
-                  >
-
-                    <td className="py-4 px-3 font-medium text-slate-700">
-                      {item.displayDate}
-                    </td>
-
-                    <td className="py-4 px-3 text-slate-600">
-                      {formatMoney(item.purchase)}
-                    </td>
-
-                    <td className="py-4 px-3 text-slate-600">
-                      {formatMoney(item.sales)}
-                    </td>
-
-                    <td className="py-4 px-3 text-slate-600">
-                      {formatMoney(item.labour)}
-                    </td>
-
-                    <td className="py-4 px-3 text-slate-600">
-                      {formatMoney(item.transport)}
-                    </td>
-
-                    <td className="py-4 px-3 font-semibold text-green-600">
-                      {formatMoney(item.profit)}
-                    </td>
-
+                filteredData.map((item) => (
+                  <tr key={`${item.category}-${item.id}`} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="py-4 px-3 font-medium text-slate-700">{formatDate(item.date)}</td>
+                    <td className="py-4 px-3 text-slate-600">{item.category}</td>
+                    <td className="py-4 px-3 text-slate-600">{item.reference}</td>
+                    <td className="py-4 px-3 text-slate-600">{item.party}</td>
+                    <td className="py-4 px-3 text-slate-600">{item.quantity ? `${item.quantity} Qt` : "-"}</td>
+                    <td className="py-4 px-3 font-semibold text-slate-700">{formatMoney(item.amount)}</td>
+                    <td className="py-4 px-3 text-slate-600">{item.status}</td>
                   </tr>
-
                 ))
-
               ) : (
-
                 <tr>
-
-                  <td
-                    colSpan="6"
-                    className="py-14 text-center text-slate-400"
-                  >
-
-                    No report data found for the selected date range.
-
+                  <td colSpan="7" className="py-14 text-center text-slate-400">
+                    No report data found for the selected filters.
                   </td>
-
                 </tr>
-
               )}
-
             </tbody>
-
           </table>
-
         </div>
-
       </div>
-
-      {/* ================================================= */}
-      {/* CHART GRID */}
-      {/* ================================================= */}
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
-
-        {/* PROFIT CHART */}
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-
-          <div className="mb-6">
-
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-
-              <TrendingUp size={21} />
-
-              Profit Overview
-
-            </h2>
-
-            <p className="text-sm text-slate-400 mt-1">
-              Profit trend for selected period.
-            </p>
-
-          </div>
-
-          {profitData.length > 0 ? (
-
-            <div className="w-full h-80">
-
-              <ResponsiveContainer width="100%" height="100%">
-
-                <LineChart data={profitData}>
-
-                  <CartesianGrid strokeDasharray="3 3" />
-
-                  <XAxis dataKey="date" />
-
-                  <YAxis />
-
-                  <Tooltip
-                    formatter={(value) => [
-                      formatMoney(value),
-                      "Profit",
-                    ]}
-                  />
-
-                  <Line
-                    type="monotone"
-                    dataKey="profit"
-                    stroke="#16a34a"
-                    strokeWidth={3}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 7 }}
-                  />
-
-                </LineChart>
-
-              </ResponsiveContainer>
-
-            </div>
-
-          ) : (
-
-            <div className="h-80 flex items-center justify-center text-slate-400">
-              No chart data available.
-            </div>
-
-          )}
-
-        </div>
-
-        {/* PURCHASE VS SALES */}
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-
-          <div className="mb-6">
-
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-
-              <BarChart3 size={21} />
-
-              Purchase vs Sales
-
-            </h2>
-
-            <p className="text-sm text-slate-400 mt-1">
-              Compare purchase cost against sales revenue.
-            </p>
-
-          </div>
-
-          {comparisonData.length > 0 ? (
-
-            <div className="w-full h-80">
-
-              <ResponsiveContainer width="100%" height="100%">
-
-                <BarChart data={comparisonData}>
-
-                  <CartesianGrid strokeDasharray="3 3" />
-
-                  <XAxis dataKey="date" />
-
-                  <YAxis />
-
-                  <Tooltip
-                    formatter={(value) =>
-                      formatMoney(value)
-                    }
-                  />
-
-                  <Legend />
-
-                  <Bar
-                    dataKey="purchase"
-                    fill="#94a3b8"
-                    radius={[4, 4, 0, 0]}
-                  />
-
-                  <Bar
-                    dataKey="sales"
-                    fill="#16a34a"
-                    radius={[4, 4, 0, 0]}
-                  />
-
-                </BarChart>
-
-              </ResponsiveContainer>
-
-            </div>
-
-          ) : (
-
-            <div className="h-80 flex items-center justify-center text-slate-400">
-              No chart data available.
-            </div>
-
-          )}
-
-        </div>
-
-      </div>
-
-      {/* ================================================= */}
-      {/* EXPENSE BREAKDOWN */}
-      {/* ================================================= */}
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mt-8">
-
-        <h2 className="text-xl font-semibold text-slate-800">
-          Expense Breakdown
-        </h2>
-
-        <p className="text-sm text-slate-400 mt-1">
-          Breakdown of major operational expenses.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-
-          <div className="border border-slate-200 rounded-xl p-5">
-
-            <p className="text-sm text-slate-500">
-              Labour Cost
-            </p>
-
-            <h3 className="text-xl font-bold text-slate-800 mt-2">
-              {formatMoney(totalLabour)}
-            </h3>
-
-          </div>
-
-          <div className="border border-slate-200 rounded-xl p-5">
-
-            <p className="text-sm text-slate-500">
-              Transport Cost
-            </p>
-
-            <h3 className="text-xl font-bold text-slate-800 mt-2">
-              {formatMoney(totalTransport)}
-            </h3>
-
-          </div>
-
-          <div className="border border-slate-200 rounded-xl p-5">
-
-            <p className="text-sm text-slate-500">
-              Total Operating Expense
-            </p>
-
-            <h3 className="text-xl font-bold text-slate-800 mt-2">
-              {formatMoney(totalExpenses)}
-            </h3>
-
-          </div>
-
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+            <BarChart3 size={21} /> Purchase vs Paid Amount
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">Daily value comparison for the selected period.</p>
         </div>
 
+        {chartData.length > 0 ? (
+          <div className="w-full h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatMoney(value)} />
+                <Legend />
+                <Bar dataKey="purchase" name="Purchase" fill="#2563eb" radius={[5, 5, 0, 0]} />
+                <Bar dataKey="payment" name="Paid" fill="#16a34a" radius={[5, 5, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-80 flex items-center justify-center text-slate-400">No chart data available.</div>
+        )}
       </div>
-
     </div>
   );
 }
