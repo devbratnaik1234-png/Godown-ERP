@@ -26,6 +26,7 @@ async function request(path, options = {}) {
   if (!response.ok) {
     if (response.status === 401 && path !== "/auth/login") {
       setToken("");
+      window.dispatchEvent(new Event("godown-erp-unauthorized"));
     }
     throw new Error(data.message || `Request failed with status ${response.status}`);
   }
