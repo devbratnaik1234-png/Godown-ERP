@@ -1,60 +1,54 @@
-// Purchase Summary Cards Component
-// Paddy Purchase Module-er summary information dashboard-e display korar jonno use kora hoyeche
-export default function PurchaseCards() {
+export default function PurchaseCards({ purchases = [] }) {
+  const today = new Date().toISOString().split("T")[0];
 
-  // Purchase Summary Data
-  // Prottekta object ekta Purchase Summary Card represent korche
+  const todayQuantity = purchases
+    .filter((item) => item.date === today)
+    .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  const totalQuantity = purchases.reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0
+  );
+
+  const totalAmount = purchases.reduce(
+    (sum, item) => sum + Number(item.total || 0),
+    0
+  );
+
   const cards = [
     {
-      title: "Today's Purchase", // Ajker mot purchase quantity
-      value: "145 Qt",
+      title: "Today's Purchase",
+      value: `${todayQuantity.toLocaleString("en-IN")} Qt`,
       color: "bg-green-600",
     },
     {
-      title: "Total Purchase", // Total purchase quantity
-      value: "1850 Qt",
+      title: "Total Purchase",
+      value: `${totalQuantity.toLocaleString("en-IN")} Qt`,
       color: "bg-blue-600",
     },
     {
-      title: "Total Amount", // Total purchase amount
-      value: "₹4.25 Lakh",
+      title: "Total Amount",
+      value: `₹${totalAmount.toLocaleString("en-IN")}`,
       color: "bg-orange-500",
     },
     {
-      title: "Pending Payment", // Farmer-der pending payment
-      value: "₹1.10 Lakh",
+      title: "Purchase Records",
+      value: purchases.length.toString(),
       color: "bg-purple-600",
     },
   ];
 
   return (
-
-    // Responsive Grid Layout
-    // Screen size onujayi card automatically arrange hobe
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-      {/* Dynamic Card Rendering using map() */}
-      {cards.map((card, index) => (
-
+      {cards.map((card) => (
         <div
-          key={index} // React Unique Key
+          key={card.title}
           className={`${card.color} text-white rounded-xl shadow-lg p-6`}
         >
-
-          {/* Card Title */}
-          <h2 className="text-lg font-semibold">
-            {card.title}
-          </h2>
-
-          {/* Card Value */}
-          <p className="text-3xl font-bold mt-3">
-            {card.value}
-          </p>
-
+          <h2 className="text-lg font-semibold">{card.title}</h2>
+          <p className="text-3xl font-bold mt-3">{card.value}</p>
         </div>
-
       ))}
-
     </div>
   );
 }
