@@ -122,7 +122,7 @@ export default function Purchase() {
         </div>
       )}
 
-      <PurchaseCards />
+      <PurchaseCards purchases={purchases} />
 
       <div className="mt-8">
         <PurchaseSearch />
