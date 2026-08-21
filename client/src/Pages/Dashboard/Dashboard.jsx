@@ -11,6 +11,7 @@ import { api } from "../../api";
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState({});
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -20,11 +21,21 @@ function Dashboard() {
         setDashboardData(data);
       } catch (err) {
         setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadDashboard();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="rounded-xl bg-white p-6 shadow text-slate-600">
+        Loading dashboard data...
+      </div>
+    );
+  }
 
   return (
     <>
@@ -38,18 +49,18 @@ function Dashboard() {
 
       <div className="grid lg:grid-cols-3 gap-6 mt-8">
         <div className="lg:col-span-2">
-          <RecentPurchases />
+          <RecentPurchases purchases={dashboardData.recentPurchases || []} />
         </div>
 
         <div className="space-y-6">
           <QuickActions />
-          <StockSummary />
+          <StockSummary stocks={dashboardData.stockBreakdown || []} />
         </div>
       </div>
 
-      <StockChart />
-      <FinancialSummary />
-      <LiveStockStatus />
+      <StockChart weeklyPurchases={dashboardData.weeklyPurchases || []} />
+      <FinancialSummary data={dashboardData} />
+      <LiveStockStatus stocks={dashboardData.stockBreakdown || []} />
     </>
   );
 }
