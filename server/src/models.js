@@ -58,17 +58,19 @@ const stockSchema = new mongoose.Schema({
 }, options);
 
 const truckSchema = new mongoose.Schema({
-  truckNumber: { type: String, required: true, trim: true },
-  driverName: { type: String, trim: true, default: "" },
+  truckNo: { type: String, required: true, trim: true, uppercase: true },
+  driver: { type: String, trim: true, default: "" },
   mobile: { type: String, trim: true, default: "" },
-  type: { type: String, trim: true, default: "" },
+  farmer: { type: String, trim: true, default: "" },
   quantity: { type: Number, min: 0, default: 0 },
-  source: { type: String, trim: true, default: "" },
-  destination: { type: String, trim: true, default: "" },
   date: { type: Date, default: Date.now },
-  status: { type: String, trim: true, default: "Active" },
+  status: { type: String, enum: ["In Transit", "Completed", "Cancelled"], default: "In Transit" },
+  type: { type: String, enum: ["Incoming", "Outgoing"], default: "Incoming" },
+  purpose: { type: String, trim: true, default: "" },
   remarks: { type: String, trim: true, default: "" }
 }, options);
+
+truckSchema.index({ truckNo: 1 }, { unique: true });
 
 export const Farmer = mongoose.model("Farmer", farmerSchema);
 export const Labour = mongoose.model("Labour", labourSchema);
