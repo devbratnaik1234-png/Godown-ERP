@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import crudRouter from "./crudRouter.js";
+import authRouter, { ensureAdminUser, requireAuth } from "./auth.js";
 import { Farmer, Labour, Purchase, Payment, Stock, Truck } from "./models.js";
 
 dotenv.config();
@@ -17,20 +18,21 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "Godown ERP API" });
 });
 
-app.use("/api/farmers", crudRouter(Farmer));
-app.use("/api/labours", crudRouter(Labour));
-app.use("/api/purchases", crudRouter(Purchase, {
+app.use("/api/auth", authRouter);
+app.use("/api/farmers", requireAuth, crudRouter(Farmer));
+app.use("/api/labours", requireAuth, crudRouter(Labour));
+app.use("/api/purchases", requireAuth, crudRouter(Purchase, {
   beforeCreate: (data) => ({ ...data, total: Number(data.quantity || 0) * Number(data.rate || 0) }),
   beforeUpdate: (data) => ({ ...data, total: Number(data.quantity || 0) * Number(data.rate || 0) })
 }));
-app.use("/api/payments", crudRouter(Payment, {
+app.use("/api/payments", requireAuth, crudRouter(Payment, {
   beforeCreate: (data) => ({ ...data, amount: Number(String(data.amount ?? 0).replace(/[^0-9.]/g, "")) }),
   beforeUpdate: (data) => ({ ...data, amount: Number(String(data.amount ?? 0).replace(/[^0-9.]/g, "")) })
 }));
-app.use("/api/stocks", crudRouter(Stock));
-app.use("/api/trucks", crudRouter(Truck));
+app.use("/api/stocks", requireAuth, crudRouter(Stock));
+app.use("/api/trucks", requireAuth, crudRouter(Truck));
 
-app.get("/api/dashboard", async (req, res, next) => {
+app.get("/api/dashboard", requireAuth, async (req, res, next) => {
   try {
     const [farmers, labours, purchases, payments, stocks, trucks] = await Promise.all([
       Farmer.countDocuments(),
@@ -137,11 +139,17 @@ if (!process.env.MONGODB_URI) {
   process.exit(1);
 }
 
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET is missing. Add a strong secret to server/.env.");
+  process.exit(1);
+}
+
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
+  .then(async () => {
+    await ensureAdminUser();
     app.listen(PORT, () => console.log(`Godown ERP API running on port ${PORT}`));
   })
   .catch((error) => {
-    console.error("MongoDB connection failed:", error.message);
+    console.error("Server startup failed:", error.message);
     process.exit(1);
   });
