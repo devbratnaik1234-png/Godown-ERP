@@ -113,7 +113,7 @@ export default function Labours() {
         </div>
       )}
 
-      <LabourCards />
+      <LabourCards labours={labours} />
 
       <LabourForm
         formData={formData}
