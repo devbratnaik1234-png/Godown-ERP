@@ -1,0 +1,23 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+client/.env
+client/.env.*
+!client/.env.example
+server/.env
+server/.env.*
+!server/.env.example
+
+# Dependencies and builds
+node_modules/
+client/node_modules/
+server/node_modules/
+client/dist/
+server/dist/
+
+# Logs and local files
+*.log
+.DS_Store
+.vscode/
+.idea/
