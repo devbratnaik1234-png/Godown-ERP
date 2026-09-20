@@ -21,6 +21,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import "./i18n";
+import About from "./ultimate/About";
 import "./ultimate/styles.css";
 import { request } from "./ultimate/api";
 import { LanguageSelect, ErrorNotice, Loading } from "./ultimate/components";
@@ -46,6 +47,7 @@ const navigation = [
   ["audit", ShieldCheck],
   ["users", Users],
   ["settings", SettingsIcon],
+  ["about", Users],
 ];
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -119,11 +121,10 @@ export default function App() {
   if (checking) return <Loading />;
   if (!user)
     return (
-      <Login
-        onLogin={applyUser}
-        changeLanguage={changeLanguage}
-        inheritedError={error}
-      />
+      <Routes>
+        <Route path="/about" element={<About publicView changeLanguage={changeLanguage} />} />
+        <Route path="*" element={<Login onLogin={applyUser} changeLanguage={changeLanguage} inheritedError={error} />} />
+      </Routes>
     );
   const allowed = (key) =>
     (!resources[key]?.admin || user.role === "admin") &&
@@ -210,6 +211,7 @@ export default function App() {
           <ErrorNotice error={error} />
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/about" element={<About />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/reports" element={<Dashboard report />} />
             <Route path="/paddypal" element={<PaddyPal />} />
@@ -324,6 +326,7 @@ function Login({ onLogin, changeLanguage, inheritedError }) {
             {t(busy ? "common.loading" : "login.signin")}
             <ArrowUpRight size={18} />
           </button>
+          <NavLink className="creator-credit" to="/about">{t("about.credit", { name: "Samarjit Chatterjee" })}</NavLink>
         </form>
       </div>
     </div>

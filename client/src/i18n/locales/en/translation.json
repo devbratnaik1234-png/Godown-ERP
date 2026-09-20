@@ -46,7 +46,8 @@
     "logout": "Sign out",
     "users": "Team access",
     "audit": "Audit trail",
-    "refunds": "Refund requests"
+    "refunds": "Refund requests",
+    "about": "About PaddySync"
   },
   "login": {
     "title": "Your godown. Connected.",
@@ -257,5 +258,16 @@
     "REQUESTED": "Requested",
     "APPROVED": "Approved",
     "REJECTED": "Rejected"
+  },
+  "about": {
+    "title": "About PaddySync",
+    "heading": "The people behind PaddySync",
+    "storyTitle": "Built from a real business story",
+    "story": "Inspired by my family’s paddy business, I started PaddySync to make procurement, stock and payments easier to manage.",
+    "role": "Founder & Lead Developer",
+    "contributors": "Contributors",
+    "credit": "Created by {{name}}",
+    "back": "Back to sign in",
+    "portrait": "Portrait of Samarjit Chatterjee"
   }
 }
