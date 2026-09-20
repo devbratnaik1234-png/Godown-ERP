@@ -54,3 +54,4 @@ export default function LabourCards({ labours = [] }) {
     </div>
   );
 }
+

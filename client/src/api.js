@@ -64,3 +64,4 @@ export const api = {
     }),
   dashboard: () => request("/dashboard"),
 };
+

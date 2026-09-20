@@ -76,3 +76,4 @@ function PaymentCards({ payments = [] }) {
 }
 
 export default PaymentCards;
+

@@ -49,3 +49,4 @@ export default function FinancialSummary({ data = {} }) {
     </div>
   );
 }
+
