@@ -7,6 +7,8 @@ import {
   Check,
   Receipt,
   RefreshCw,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { request, v2 } from "./api";
 import { resources, payload } from "./resources";
@@ -46,12 +48,15 @@ export default function ResourcePage({ resource, user }) {
     [loading, setLoading] = useState(true),
     [refresh, setRefresh] = useState(0);
   const [form, setForm] = useState(null),
+    [editId, setEditId] = useState(null),
     [key, setKey] = useState(null),
     [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(null),
+    [removeTarget, setRemoveTarget] = useState(null),
     [evidence, setEvidence] = useState(""),
     [receipt, setReceipt] = useState(null),
     [reportLanguage, setReportLanguage] = useState(i18n.language);
+  const masterResource = ["parties", "products", "warehouses"].includes(resource);
   const canWrite =
     !config.readonly &&
     (config.admin
@@ -129,13 +134,15 @@ export default function ResourcePage({ resource, user }) {
       setError({ code: "PROVIDER_UNAVAILABLE" });
     }
   };
-  const openForm = () => {
+  const openForm = (row = null) => {
     setError(null);
+    setEditId(row?._id || null);
     setForm(
       Object.fromEntries(
         config.fields.map((f) => [
           f.key,
-          f.type === "select" ? f.options[0] : f.type === "date" ? today() : "",
+          row?.[f.key] ??
+            (f.type === "select" ? f.options[0] : f.type === "date" ? today() : ""),
         ]),
       ),
     );
@@ -146,12 +153,16 @@ export default function ResourcePage({ resource, user }) {
     setBusy(true);
     setError(null);
     try {
-      await (config.legacy ? request : v2)(config.path, {
-        method: "POST",
-        body: payload(resource, form),
-        key,
-      });
+      await (config.legacy ? request : v2)(
+        editId ? `${config.path}/${editId}` : config.path,
+        {
+          method: editId ? "PUT" : "POST",
+          body: payload(resource, form),
+          ...(!editId ? { key } : {}),
+        },
+      );
       setForm(null);
+      setEditId(null);
       setRefresh((x) => x + 1);
     } catch (e) {
       setError(e);
@@ -289,7 +300,9 @@ export default function ResourcePage({ resource, user }) {
                   {config.columns.map((c) => (
                     <th key={c}>{t(labelKey(c), { defaultValue: c })}</th>
                   ))}
-                  {resource === "payments" && <th>{t("common.actions")}</th>}
+                  {(resource === "payments" || masterResource) && (
+                    <th>{t("common.actions")}</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -307,9 +320,29 @@ export default function ResourcePage({ resource, user }) {
                         )}
                       </td>
                     ))}
-                    {resource === "payments" && (
+                    {(resource === "payments" || masterResource) && (
                       <td>
                         <div className="row-actions">
+                          {masterResource && canWrite && (
+                            <>
+                              <button
+                                className="secondary"
+                                onClick={() => openForm(row)}
+                              >
+                                <Pencil size={14} />
+                                {t("common.edit")}
+                              </button>
+                              <button
+                                className="text-button danger"
+                                disabled={busy}
+                                onClick={() => setRemoveTarget(row)}
+                              >
+                                <Trash2 size={14} />
+                                {t("common.delete")}
+                              </button>
+                            </>
+                          )}
+                          {resource === "payments" &&
                           {row.provider === "manual" &&
                             ["CREATED", "PENDING"].includes(row.status) &&
                             canWrite && (
@@ -395,7 +428,10 @@ export default function ResourcePage({ resource, user }) {
         </div>
       </div>
       {form && (
-        <Modal title={t("common.add")} onClose={() => !busy && setForm(null)}>
+        <Modal
+          title={t(editId ? "common.edit" : "common.add")}
+          onClose={() => !busy && (setForm(null), setEditId(null))}
+        >
           <form onSubmit={submit}>
             <ErrorNotice error={error} />
             <div className="form-grid">
@@ -495,6 +531,43 @@ export default function ResourcePage({ resource, user }) {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+      {removeTarget && (
+        <Modal
+          title={t("common.delete")}
+          onClose={() => !busy && setRemoveTarget(null)}
+        >
+          <ErrorNotice error={error} />
+          <p>{t("common.deleteConfirm")}</p>
+          <div className="modal-footer">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setRemoveTarget(null)}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              className="primary danger"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  await v2(`${config.path}/${removeTarget._id}`, { method: "DELETE" });
+                  setRemoveTarget(null);
+                  setRefresh((x) => x + 1);
+                } catch (e) {
+                  setError(e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {t("common.delete")}
+            </button>
+          </div>
         </Modal>
       )}
       {confirm && (
