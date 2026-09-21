@@ -367,7 +367,7 @@ export default function ResourcePage({ resource, user }) {
                                   {t("common.cancel")}
                                 </button>
                               </>
-                            )}
+                            )
                           {row.status === "SUCCESS" && (
                             <button
                               className="secondary"
