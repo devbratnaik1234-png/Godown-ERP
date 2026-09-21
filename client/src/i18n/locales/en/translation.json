@@ -23,7 +23,9 @@
     "confirm": "Confirm",
     "required": "Complete all required fields.",
     "edit": "Edit",
-    "searchReference": "Search reference"
+    "searchReference": "Search reference",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this record? This action cannot be undone."
   },
   "nav": {
     "dashboard": "Overview",

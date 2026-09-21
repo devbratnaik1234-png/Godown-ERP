@@ -146,6 +146,54 @@ for (const [resource, Model] of Object.entries(masterModels)) {
       res.status(201).json(result);
     }),
   );
+  router.put(
+    `/${resource}/:id`,
+    allow(...operationalRoles),
+    asyncRoute(async (req, res) => {
+      const data = masterSchemas[resource].parse(req.body);
+      objectId.parse(req.params.id);
+      const result = await atomic(async (session) => {
+        const item = await Model.findOneAndUpdate(
+          { _id: req.params.id, ...scoped(req) },
+          data,
+          { new: true, runValidators: true, session },
+        );
+        assert(item, "RECORD_NOT_FOUND", 404);
+        await audit(
+          req.user,
+          "MASTER_UPDATED",
+          item._id,
+          { resource },
+          session,
+        );
+        return item;
+      });
+      res.json(result);
+    }),
+  );
+  router.delete(
+    `/${resource}/:id`,
+    allow(...operationalRoles),
+    asyncRoute(async (req, res) => {
+      objectId.parse(req.params.id);
+      const result = await atomic(async (session) => {
+        const item = await Model.findOneAndDelete(
+          { _id: req.params.id, ...scoped(req) },
+          { session },
+        );
+        assert(item, "RECORD_NOT_FOUND", 404);
+        await audit(
+          req.user,
+          "MASTER_DELETED",
+          item._id,
+          { resource },
+          session,
+        );
+        return item;
+      });
+      res.json({ message: "Deleted successfully", id: result._id });
+    }),
+  );
 }
 router.get(
   "/summary",
