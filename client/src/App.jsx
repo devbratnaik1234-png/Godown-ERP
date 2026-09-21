@@ -67,16 +67,16 @@ export default function App() {
   useEffect(() => {
     let active = true;
     request("/auth/me")
-      .then((account) => {
-        if (active) {
-          setUser(account);
-          void i18n.changeLanguage(
-            sessionStorage.getItem("paddysync.locale") ||
-              account.preferredLanguage ||
-              account.language ||
-              account.organization.defaultLanguage,
-          );
-        }
+      .then(async (account) => {
+        if (!active) return;
+        setUser(account);
+        await i18n.changeLanguage(
+          sessionStorage.getItem("paddysync.locale") ||
+            localStorage.getItem("paddysync.locale") ||
+            account.preferredLanguage ||
+            account.language ||
+            account.organization.defaultLanguage,
+        );
       })
       .catch((e) => {
         if (active && e.code !== "UNAUTHENTICATED") setError(e);
