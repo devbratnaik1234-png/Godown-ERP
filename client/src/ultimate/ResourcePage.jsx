@@ -342,8 +342,8 @@ export default function ResourcePage({ resource, user }) {
                               </button>
                             </>
                           )}
-                          {resource === "payments" &&
-                          {row.provider === "manual" &&
+                          {resource === "payments" && (
+                            row.provider === "manual" &&
                             ["CREATED", "PENDING"].includes(row.status) &&
                             canWrite && (
                               <>
