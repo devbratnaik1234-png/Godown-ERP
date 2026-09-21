@@ -83,3 +83,4 @@ function StockChart({ weeklyPurchases = [] }) {
 }
 
 export default StockChart;
+

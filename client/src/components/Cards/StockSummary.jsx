@@ -36,3 +36,4 @@ function StockSummary({ stocks = [] }) {
 }
 
 export default StockSummary;
+

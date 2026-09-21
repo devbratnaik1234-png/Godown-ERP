@@ -3,6 +3,13 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import dns from "node:dns";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
+import { fileURLToPath } from "node:url";
+import v2Router from "./v2/router.js";
+import { handleWebhook } from "./v2/payments.js";
+import { asyncRoute, allow } from "./v2/domain.js";
+import { allModels } from "./v2/models.js";
 import crudRouter from "./crudRouter.js";
 import authRouter, { ensureAdminUser, requireAuth } from "./auth.js";
 import { Farmer, Labour, Purchase, Payment, Stock, Truck } from "./models.js";
@@ -19,17 +26,34 @@ if (configuredDnsServers.length > 0) {
   console.log(`Using configured DNS servers: ${configuredDnsServers.join(", ")}`);
 }
 
-const app = express();
+export const app = express();
+app.disable("x-powered-by");
+if (process.env.TRUST_PROXY_HOPS) app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS));
+app.use(helmet());
+app.use(rateLimit({ windowMs: 60000, limit: 300, standardHeaders: "draft-7", legacyHeaders: false, message: { code: "RATE_LIMITED" } }));
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || "http://localhost:5173" }));
-app.use(express.json());
+const origin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+app.use(cors({ origin, credentials: true }));
+app.post("/api/webhooks/:organizationId/:provider/:mode", express.raw({ type: "application/json", limit: "256kb" }), asyncRoute(async (req, res) => {
+  if (!/^[a-f\d]{24}$/i.test(req.params.organizationId) || req.params.provider !== "cashfree" || !["test","live"].includes(req.params.mode)) return res.status(400).json({code:"INVALID_INPUT"});
+  res.json(await handleWebhook(req.params.organizationId, req.params.provider, req.params.mode, req.body, req.headers));
+}));
+app.use((req, res, next) => {
+  if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const suppliedOrigin = req.get("Origin");
+    if (suppliedOrigin !== origin && !(process.env.LEGACY_BEARER_LOGIN === "true" && !suppliedOrigin && req.get("Authorization"))) return res.status(403).json({ code: "INVALID_ORIGIN" });
+  }
+  next();
+});
+app.use(express.json({ limit: "64kb" }));
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "Godown ERP API" });
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/v2", requireAuth, v2Router);
 app.use("/api/farmers", requireAuth, crudRouter(Farmer));
 app.use("/api/labours", requireAuth, crudRouter(Labour));
 app.use("/api/purchases", requireAuth, crudRouter(Purchase, {
@@ -43,15 +67,15 @@ app.use("/api/payments", requireAuth, crudRouter(Payment, {
 app.use("/api/stocks", requireAuth, crudRouter(Stock));
 app.use("/api/trucks", requireAuth, crudRouter(Truck));
 
-app.get("/api/dashboard", requireAuth, async (req, res, next) => {
+app.get("/api/dashboard", requireAuth, allow("admin", "manager", "accountant"), async (req, res, next) => {
   try {
     const [farmers, labours, purchases, payments, stocks, trucks] = await Promise.all([
-      Farmer.countDocuments(),
-      Labour.countDocuments(),
-      Purchase.find().sort({ date: -1, createdAt: -1 }),
-      Payment.find(),
-      Stock.find(),
-      Truck.countDocuments()
+      Farmer.countDocuments({ organizationId: req.user.organizationId }),
+      Labour.countDocuments({ organizationId: req.user.organizationId }),
+      Purchase.find({ organizationId: req.user.organizationId }).sort({ date: -1, createdAt: -1 }),
+      Payment.find({ organizationId: req.user.organizationId }),
+      Stock.find({ organizationId: req.user.organizationId }),
+      Truck.countDocuments({ organizationId: req.user.organizationId })
     ]);
 
     const totalPurchasedQuantity = purchases.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -132,35 +156,31 @@ app.get("/api/dashboard", requireAuth, async (req, res, next) => {
 });
 
 app.use((error, req, res, next) => {
-  console.error(error);
+  if (error.name === "ZodError") return res.status(400).json({ code: "INVALID_INPUT" });
+  if (error.status && typeof error.code === "string") return res.status(error.status).json({ code: error.code });
+  console.error({ name: error.name, code: error.code });
   if (error.name === "ValidationError") {
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({ code: "INVALID_INPUT" });
   }
   if (error.code === 11000) {
-    return res.status(409).json({ message: "A record with this ID already exists" });
+    return res.status(409).json({ code: "DUPLICATE_RECORD" });
   }
   if (error.name === "CastError") {
-    return res.status(400).json({ message: "Invalid record ID" });
+    return res.status(400).json({ code: "INVALID_INPUT" });
   }
-  res.status(500).json({ message: "Internal server error" });
+  res.status(500).json({ code: "INTERNAL_ERROR" });
 });
 
-if (!process.env.MONGODB_URI) {
-  console.error("MONGODB_URI is missing. Copy .env.example to .env and configure MongoDB.");
-  process.exit(1);
+export async function start() {
+  if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is required");
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error("JWT_SECRET must contain at least 32 characters");
+  await mongoose.connect(process.env.MONGODB_URI);
+  const topology = await mongoose.connection.db.admin().command({ hello: 1 });
+  if (!topology.setName && topology.msg !== "isdbgrid") throw new Error("MongoDB replica set or sharded cluster is required for atomic ledger transactions");
+  for (const Model of allModels) await Model.init();
+  await ensureAdminUser();
+  const server = app.listen(PORT, () => console.log(`PaddySync API listening on ${PORT}`));
+  process.once('SIGTERM', () => server.close(() => mongoose.disconnect()));
+  return server;
 }
-
-if (!process.env.JWT_SECRET) {
-  console.error("JWT_SECRET is missing. Add a strong secret to server/.env.");
-  process.exit(1);
-}
-
-mongoose.connect(process.env.MONGODB_URI)
-  .then(async () => {
-    await ensureAdminUser();
-    app.listen(PORT, () => console.log(`Godown ERP API running on port ${PORT}`));
-  })
-  .catch((error) => {
-    console.error("Server startup failed:", error.message);
-    process.exit(1);
-  });
+if (process.argv[1] === fileURLToPath(import.meta.url)) start().catch(error => { console.error("Startup failed:", error.message); process.exit(1); });

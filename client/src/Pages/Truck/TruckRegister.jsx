@@ -236,3 +236,4 @@ function Detail({ label, value }) {
 }
 
 export default TruckRegister;
+

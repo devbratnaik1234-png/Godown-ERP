@@ -76,8 +76,17 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, default: "Admin" },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true },
   passwordHash: { type: String, required: true },
-  role: { type: String, enum: ["admin"], default: "admin" }
+  organizationId: { type: mongoose.Schema.Types.ObjectId, index: true },
+  preferredLanguage: { type: String, enum: ["en", "hi", "bn", "or"] },
+  aiLanguageMode: { type: String, enum: ["selected", "question"], default: "selected" },
+  active: { type: Boolean, default: true },
+  tokenVersion: { type: Number, default: 0 },
+  role: { type: String, enum: ["admin", "manager", "accountant", "operator", "viewer"], default: "admin" }
 }, options);
+
+for (const schema of [farmerSchema, labourSchema, purchaseSchema, paymentSchema, stockSchema, truckSchema]) {
+  schema.add({ organizationId: { type: mongoose.Schema.Types.ObjectId, index: true } });
+}
 
 export const Farmer = mongoose.model("Farmer", farmerSchema);
 export const Labour = mongoose.model("Labour", labourSchema);
@@ -86,3 +95,4 @@ export const Payment = mongoose.model("Payment", paymentSchema);
 export const Stock = mongoose.model("Stock", stockSchema);
 export const Truck = mongoose.model("Truck", truckSchema);
 export const User = mongoose.model("User", userSchema);
+

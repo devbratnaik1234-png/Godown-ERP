@@ -74,3 +74,4 @@ export default function LabourTable({ labours, onDelete }) {
     </div>
   );
 }
+

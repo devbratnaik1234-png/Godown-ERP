@@ -51,3 +51,4 @@ function RecentPurchases({ purchases = [] }) {
 }
 
 export default RecentPurchases;
+

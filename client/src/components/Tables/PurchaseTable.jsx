@@ -66,3 +66,4 @@ export default function PurchaseTable({ purchases, onDelete }) {
     </div>
   );
 }
+

@@ -1,131 +1,45 @@
-# Godown ERP
+# PaddySync
 
-Full-stack godown management ERP built with React, Vite, Tailwind CSS, Node.js, Express, MongoDB and Mongoose.
+A multilingual paddy ERP under active development: React/Vite + Express + MongoDB replica-set transactions.
 
-## Current modules
+This branch is a **draft architecture and product foundation**, not a production-ready implementation of the full PaddySync Ultimate specification.
 
-- Dashboard
-- Farmers
-- Paddy Purchases
-- Labour Management
-- Payments
-- Stock
-- Truck Register
-- Reports & Analytics
-- JWT administrator authentication
+- English, Hindi, Bengali and Odia UI with i18next and bundled script fonts.
+- Organization-scoped procurement, sales, inventory and simple rice processing.
+- Manual collections/disbursements and Cashfree hosted collection adapter with verified webhooks.
+- Separate invoice reservation, ledger, reconciliation, settlement and audit records.
+- PaddyPal read-only AI tool integration over authorized organization data.
+- Mobile layout, browser-printable localized receipts, CSV export, user roles and language preferences.
 
-## Project structure
+Start with [architecture and current limitations](docs/PADDYSYNC-ARCHITECTURE.md), [migration/deployment instructions](docs/MIGRATION-AND-DEPLOYMENT.md), and [mandatory requirement status](docs/REQUIREMENTS-STATUS.md).
 
-```text
-Godown-ERP/
-├── client/              React + Vite frontend
-├── server/              Express + MongoDB backend
-└── .github/workflows/   CI validation
-```
+Do not connect this branch to an existing production database before reviewing the migration plan. Legacy financial writes are intentionally read-only, and old balances have not been imported into the new ledger.
 
-## Requirements
+## Run
 
-- Node.js 20 or newer
-- npm
-- MongoDB Atlas connection string or a local MongoDB server
+Use Node 24. Configure a development MongoDB replica set, then:
 
-## 1. Configure the backend
-
-From the project root, copy `server/.env.example` to `server/.env` and set real values.
-
-```env
-PORT=5000
-MONGODB_URI=your-mongodb-connection-string
-CLIENT_ORIGIN=http://localhost:5173
-JWT_SECRET=your-long-random-secret
-ADMIN_NAME=Godown Admin
-ADMIN_EMAIL=your-admin-email
-ADMIN_PASSWORD=your-strong-password
-```
-
-Never commit `server/.env`.
-
-The first time the backend starts, it creates the configured administrator if that email does not already exist in MongoDB. The password is stored as a bcrypt hash, not plain text.
-
-## 2. Configure the frontend
-
-Copy `client/.env.example` to `client/.env`.
-
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
-## 3. Install dependencies
-
-Backend:
-
-```bash
+```sh
 cd server
-npm install
+npm ci
+cp .env.example .env
+# Configure the local .env, then:
+npm run dev
 ```
 
-Frontend in another terminal:
+In a second terminal:
 
-```bash
+```sh
 cd client
 npm ci
-```
-
-## 4. Run the application
-
-Backend:
-
-```bash
-cd server
+cp .env.example .env
 npm run dev
 ```
 
-Frontend:
+Open http://localhost:5173. Credentials come from your local server environment on an empty installation. No business demo data or fixed default login is seeded.
 
-```bash
-cd client
-npm run dev
-```
+## Tests
 
-Open the Vite URL shown in the terminal, normally `http://localhost:5173`.
+`server`: `npm test`, `npm run test:integration`.
 
-Sign in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` configured in `server/.env`.
-
-## Main API routes
-
-All ERP routes except health and login require a JWT access token.
-
-```text
-GET    /api/health
-POST   /api/auth/login
-GET    /api/auth/me
-GET    /api/dashboard
-/api/farmers
-/api/labours
-/api/purchases
-/api/payments
-/api/stocks
-/api/trucks
-```
-
-The resource endpoints support standard list, read, create, update and delete operations.
-
-## Data flow
-
-```text
-React form/page
-    ↓
-client/src/api.js
-    ↓ Authorization: Bearer <JWT>
-Express API
-    ↓
-Mongoose model
-    ↓
-MongoDB
-```
-
-When a page reloads, records are loaded again from MongoDB instead of being lost from React state or browser local storage.
-
-## CI
-
-The GitHub Actions workflow validates the frontend build and checks backend JavaScript syntax on pushes and pull requests.
+`client`: `npm run lint`, `npm run test:locales`, `npm run build`, `npm run test:browser` (requires `npx playwright install chromium`). Browser tests explicitly mock API responses; integration tests use an isolated MongoDB replica set.
