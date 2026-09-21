@@ -55,12 +55,12 @@ export default function App() {
     [checking, setChecking] = useState(true),
     [error, setError] = useState(null),
     [menu, setMenu] = useState(false);
-  const applyUser = (account) => {
+  const applyUser = async (account) => {
     setUser(account);
-    i18n.changeLanguage(
+    await i18n.changeLanguage(
       sessionStorage.getItem("paddysync.locale") ||
-        account.language ||
         account.preferredLanguage ||
+        account.language ||
         account.organization.defaultLanguage,
     );
   };
@@ -70,8 +70,11 @@ export default function App() {
       .then((account) => {
         if (active) {
           setUser(account);
-          i18n.changeLanguage(
-            sessionStorage.getItem("paddysync.locale") || account.language,
+          void i18n.changeLanguage(
+            sessionStorage.getItem("paddysync.locale") ||
+              account.preferredLanguage ||
+              account.language ||
+              account.organization.defaultLanguage,
           );
         }
       })
@@ -88,7 +91,7 @@ export default function App() {
   }, [i18n]);
   const changeLanguage = async (lang) => {
     const previous = i18n.language;
-    i18n.changeLanguage(lang);
+    await i18n.changeLanguage(lang);
     setError(null);
     if (sessionStorage.getItem("paddysync.temporary")) {
       sessionStorage.setItem("paddysync.locale", lang);
