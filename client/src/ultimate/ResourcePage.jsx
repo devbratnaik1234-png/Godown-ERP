@@ -400,6 +400,7 @@ export default function ResourcePage({ resource, user }) {
                               {t("payment.reconcile")}
                             </button>
                           )}
+                          )}
                         </div>
                       </td>
                     )}
