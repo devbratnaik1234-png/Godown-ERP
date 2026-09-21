@@ -343,7 +343,8 @@ export default function ResourcePage({ resource, user }) {
                             </>
                           )}
                           {resource === "payments" && (
-                            row.provider === "manual" &&
+                            <>
+                              {row.provider === "manual" &&
                             ["CREATED", "PENDING"].includes(row.status) &&
                             canWrite && (
                               <>
@@ -367,7 +368,7 @@ export default function ResourcePage({ resource, user }) {
                                   {t("common.cancel")}
                                 </button>
                               </>
-                            )
+                            )}
                           {row.status === "SUCCESS" && (
                             <button
                               className="secondary"
@@ -400,6 +401,7 @@ export default function ResourcePage({ resource, user }) {
                               {t("payment.reconcile")}
                             </button>
                           )}
+                            </>
                           )}
                         </div>
                       </td>
