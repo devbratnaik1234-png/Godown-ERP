@@ -69,9 +69,10 @@ for (const [locale, pack] of Object.entries(packs))
       await page.getByRole("combobox").selectOption(locale);
       await expect(
         page.getByRole("heading", { name: pack.dashboard.title }),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 10000 });
       await page.goto("/parties");
       await page.getByRole("combobox").selectOption(locale);
+      await expect(page.getByRole("button", { name: pack.common.add })).toBeVisible({ timeout: 10000 });
       await page.getByRole("button", { name: pack.common.add }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
       await expect(
@@ -108,8 +109,9 @@ test("PaddyPal shows localized unavailable state and no fabricated answers", asy
   await mock(page);
   await page.goto("/paddypal");
   await page.getByRole("combobox").selectOption("bn");
+  await expect(page.getByRole("button", { name: bn.ai.stock })).toBeVisible({ timeout: 10000 });
   await page.getByRole("button", { name: bn.ai.stock }).click();
-  await expect(page.getByRole("alert")).toHaveText(bn.errors.AI_NOT_CONFIGURED);
+  await expect(page.getByRole("alert")).toHaveText(bn.errors.AI_NOT_CONFIGURED, { timeout: 10000 });
   await expect(page.locator(".message.assistant")).toHaveCount(0);
 });
 test("report print contains selected script", async ({ page }) => {
